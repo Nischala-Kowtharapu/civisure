@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - CiviSure</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🚨 CiviSure</h2>
+            </div>
+            <nav>
+                <ul class="sidebar-menu">
+                    <li><a href="dashboard.html">📊 Dashboard</a></li>
+                    <li><a href="report-crime.html">📝 Report Crime</a></li>
+                    <li><a href="sos.html">🆘 SOS Alert</a></li>
+                    <li><a href="crime-map.html">🗺️ Crime Map</a></li>
+                    <li><a href="legal-chatbot.html">⚖️ Legal Assistant</a></li>
+                    <li><a href="profile.html" class="active">👤 My Profile</a></li>
+                    <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1>My Profile</h1>
+                <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+            </div>
+
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Verification Status</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="verificationStatus" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem;"></div>
+                        <p style="color: #6b7280; font-size: 0.875rem;">
+                            Complete your profile with Aadhar details to get verified and unlock all features.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Personal Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="profileForm">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                <div class="form-group">
+                                    <label for="fullName">Full Name *</label>
+                                    <input type="text" id="fullName" name="fullName" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" name="email" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" name="phone" placeholder="+91-XXXXXXXXXX">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="dateOfBirth">Date of Birth</label>
+                                    <input type="date" id="dateOfBirth" name="dateOfBirth">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="gender">Gender</label>
+                                    <select id="gender" name="gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="aadharNumber">Aadhar Number (For Verification)</label>
+                                    <input type="text" id="aadharNumber" name="aadharNumber" placeholder="XXXX-XXXX-XXXX" maxlength="14">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="address">Address</label>
+                                <input type="text" id="address" name="address" placeholder="House No., Street, Area">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                                <div class="form-group">
+                                    <label for="city">City</label>
+                                    <input type="text" id="city" name="city">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="state">State</label>
+                                    <input type="text" id="state" name="state">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pincode">Pincode</label>
+                                    <input type="text" id="pincode" name="pincode" maxlength="6">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-large">
+                                <span class="btn-text">Update Profile</span>
+                                <span class="btn-loader" style="display: none;">Updating...</span>
+                            </button>
+
+                            <div id="profileMessage" class="message" style="display: none;"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        (async () => {
+            await auth.requireAuth();
+            loadProfile();
+        })();
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to logout?')) {
+                auth.logout();
+            }
+        });
+
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/profile');
+                const data = await response.json();
+
+                if (data.success) {
+                    const user = data.user;
+                    
+                    // Fill form
+                    document.getElementById('fullName').value = user.full_name || '';
+                    document.getElementById('email').value = user.email || '';
+                    document.getElementById('phone').value = user.phone || '';
+                    document.getElementById('dateOfBirth').value = user.date_of_birth || '';
+                    document.getElementById('gender').value = user.gender || '';
+                    document.getElementById('address').value = user.address || '';
+                    document.getElementById('city').value = user.city || '';
+                    document.getElementById('state').value = user.state || '';
+                    document.getElementById('pincode').value = user.pincode || '';
+                    document.getElementById('aadharNumber').value = user.aadhar_number || '';
+
+                    // Show verification status
+                    const statusDiv = document.getElementById('verificationStatus');
+                    if (user.is_verified) {
+                        statusDiv.innerHTML = '<strong style="color: #10b981;">✅ Verified User</strong><p style="margin: 0.5rem 0 0 0;">Your account is verified. You can access all features.</p>';
+                        statusDiv.style.backgroundColor = '#d1fae5';
+                    } else if (user.verification_status === 'pending') {
+                        statusDiv.innerHTML = '<strong style="color: #f59e0b;">⏳ Verification Pending</strong><p style="margin: 0.5rem 0 0 0;">Your verification is under review. This may take 24-48 hours.</p>';
+                        statusDiv.style.backgroundColor = '#fef3c7';
+                    } else {
+                        statusDiv.innerHTML = '<strong style="color: #ef4444;">❌ Not Verified</strong><p style="margin: 0.5rem 0 0 0;">Please complete your profile with Aadhar details to get verified.</p>';
+                        statusDiv.style.backgroundColor = '#fee2e2';
+                    }
+                }
+            } catch (error) {
+                console.error('Load profile error:', error);
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnLoader = submitBtn.querySelector('.btn-loader');
+            const messageDiv = document.getElementById('profileMessage');
+
+            const formData = {
+                fullName: form.fullName.value,
+                phone: form.phone.value,
+                dateOfBirth: form.dateOfBirth.value,
+                gender: form.gender.value,
+                address: form.address.value,
+                city: form.city.value,
+                state: form.state.value,
+                pincode: form.pincode.value,
+                aadharNumber: form.aadharNumber.value
+            };
+
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'inline';
+            messageDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messageDiv.textContent = 'Profile updated successfully!';
+                    messageDiv.className = 'message success';
+                    messageDiv.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    messageDiv.textContent = data.message || 'Failed to update profile';
+                    messageDiv.className = 'message error';
+                    messageDiv.style.display = 'block';
+
+                    submitBtn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnLoader.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Update profile error:', error);
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+
+                submitBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoader.style.display = 'none';
+            }
+        });
+
+        // Format Aadhar number as XXXX-XXXX-XXXX
+        document.getElementById('aadharNumber').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 12) value = value.slice(0, 12);
+            
+            let formatted = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) formatted += '-';
+                formatted += value[i];
+            }
+            e.target.value = formatted;
+        });
+    </script>
+</body>
+</html>

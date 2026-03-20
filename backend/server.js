@@ -17,6 +17,7 @@ const reportRoutes = require('./routes/reports');
 const sosRoutes = require('./routes/sos');
 const chatbotRoutes = require('./routes/chatbot');
 const adminRoutes = require('./routes/admin');
+const profileRoutes = require('./routes/profile');
 
 app.use(helmet({
     contentSecurityPolicy: false
@@ -60,6 +61,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/sos', sosRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));

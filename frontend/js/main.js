@@ -85,14 +85,49 @@ const utils = {
 
     reverseGeocode: async (lat, lng) => {
         try {
+            // Add delay to respect rate limits
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                {
+                    headers: {
+                        'Accept-Language': 'en'
+                    }
+                }
             );
+            
+            if (!response.ok) {
+                throw new Error('Geocoding service unavailable');
+            }
+            
             const data = await response.json();
-            return data.display_name || 'Unknown location';
+            
+            if (data.error) {
+                console.error('Geocoding error:', data.error);
+                return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+            
+            // Build address from components
+            const address = data.address || {};
+            const parts = [];
+            
+            if (address.road) parts.push(address.road);
+            if (address.suburb || address.neighbourhood) parts.push(address.suburb || address.neighbourhood);
+            if (address.city || address.town || address.village) parts.push(address.city || address.town || address.village);
+            if (address.state) parts.push(address.state);
+            if (address.postcode) parts.push(address.postcode);
+            
+            const formattedAddress = parts.length > 0 
+                ? parts.join(', ') 
+                : data.display_name || `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            
+            return formattedAddress;
+            
         } catch (error) {
             console.error('Reverse geocode error:', error);
-            return 'Unknown location';
+            // Return coordinates as fallback
+            return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         }
     },
 

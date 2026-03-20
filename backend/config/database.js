@@ -8,6 +8,7 @@ const db = new Database(dbPath);
 db.pragma('foreign_keys = ON');
 
 function initializeDatabase() {
+    // Users table with profile fields
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,21 +16,35 @@ function initializeDatabase() {
             password TEXT NOT NULL,
             full_name TEXT NOT NULL,
             phone TEXT,
+            date_of_birth DATE,
+            gender TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pincode TEXT,
+            aadhar_number TEXT,
+            profile_photo TEXT,
+            is_verified BOOLEAN DEFAULT 0,
+            verification_status TEXT DEFAULT 'pending' CHECK(verification_status IN ('pending', 'verified', 'rejected')),
             role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin')),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             last_login DATETIME
         )
     `);
 
+    // Crime reports table with separate locations
     db.exec(`
         CREATE TABLE IF NOT EXISTS crime_reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             category TEXT NOT NULL,
             description TEXT NOT NULL,
-            location_lat REAL NOT NULL,
-            location_lng REAL NOT NULL,
-            location_address TEXT,
+            crime_location_lat REAL NOT NULL,
+            crime_location_lng REAL NOT NULL,
+            crime_location_address TEXT,
+            user_location_lat REAL,
+            user_location_lng REAL,
+            user_location_address TEXT,
             date_time DATETIME NOT NULL,
             evidence_files TEXT,
             status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'investigating', 'resolved', 'rejected')),
@@ -40,6 +55,7 @@ function initializeDatabase() {
         )
     `);
 
+    // SOS alerts table
     db.exec(`
         CREATE TABLE IF NOT EXISTS sos_alerts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +71,7 @@ function initializeDatabase() {
         )
     `);
 
+    // Chat conversations table
     db.exec(`
         CREATE TABLE IF NOT EXISTS chat_conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,6 +83,7 @@ function initializeDatabase() {
         )
     `);
 
+    // Create indexes
     db.exec(`
         CREATE INDEX IF NOT EXISTS idx_reports_status ON crime_reports(status);
         CREATE INDEX IF NOT EXISTS idx_reports_category ON crime_reports(category);

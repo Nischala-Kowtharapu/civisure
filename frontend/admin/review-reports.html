@@ -214,8 +214,18 @@
                             <p><strong>Report ID:</strong> #${report.id}</p>
                             <p><strong>Category:</strong> ${report.category}</p>
                             <p><strong>Description:</strong><br>${report.description}</p>
-                            <p><strong>Location:</strong> ${report.location_address || 'Not specified'}</p>
-                            <p><strong>Date/Time:</strong> ${new Date(report.date_time).toLocaleString()}</p>
+                            
+                            <h3 style="margin-top: 1.5rem; color: #ef4444;">🚨 Crime Location:</h3>
+                            <p><strong>Address:</strong> ${report.crime_location_address || 'Not specified'}</p>
+                            <p><strong>Coordinates:</strong> ${report.crime_location_lat}, ${report.crime_location_lng}</p>
+                            
+                            ${report.user_location_lat ? `
+                                <h3 style="margin-top: 1.5rem; color: #10b981;">📱 Reporter's Location:</h3>
+                                <p><strong>Address:</strong> ${report.user_location_address || 'Not specified'}</p>
+                                <p><strong>Coordinates:</strong> ${report.user_location_lat}, ${report.user_location_lng}</p>
+                            ` : ''}
+                            
+                            <p style="margin-top: 1.5rem;"><strong>Date/Time:</strong> ${new Date(report.date_time).toLocaleString()}</p>
                             <p><strong>Status:</strong> <span class="badge badge-${report.status === 'resolved' ? 'success' : 'warning'}">${report.status}</span></p>
                             <p><strong>Anonymous:</strong> ${report.anonymous ? 'Yes' : 'No'}</p>
                             ${!report.anonymous && report.reporter_name ? `<p><strong>Reporter:</strong> ${report.reporter_name} (${report.reporter_email})</p>` : ''}

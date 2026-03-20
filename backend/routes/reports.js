@@ -6,9 +6,20 @@ const upload = require('../middleware/upload');
 
 router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
     try {
-        const { category, description, locationLat, locationLng, locationAddress, dateTime, anonymous } = req.body;
+        const { 
+            category, 
+            description, 
+            crimeLocationLat, 
+            crimeLocationLng, 
+            crimeLocationAddress,
+            userLocationLat,
+            userLocationLng,
+            userLocationAddress,
+            dateTime, 
+            anonymous 
+        } = req.body;
 
-        if (!category || !description || !locationLat || !locationLng || !dateTime) {
+        if (!category || !description || !crimeLocationLat || !crimeLocationLng || !dateTime) {
             return res.status(400).json({
                 success: false,
                 message: 'All required fields must be provided'
@@ -24,18 +35,22 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
 
         const stmt = db.prepare(`
             INSERT INTO crime_reports 
-            (user_id, category, description, location_lat, location_lng, location_address, 
+            (user_id, category, description, crime_location_lat, crime_location_lng, crime_location_address,
+             user_location_lat, user_location_lng, user_location_address,
              date_time, evidence_files, anonymous)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
             userId,
             category,
             description,
-            parseFloat(locationLat),
-            parseFloat(locationLng),
-            locationAddress || null,
+            parseFloat(crimeLocationLat),
+            parseFloat(crimeLocationLng),
+            crimeLocationAddress || null,
+            userLocationLat ? parseFloat(userLocationLat) : null,
+            userLocationLng ? parseFloat(userLocationLng) : null,
+            userLocationAddress || null,
             dateTime,
             evidenceFiles,
             anonymous === 'true' ? 1 : 0
@@ -58,7 +73,7 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
 
 router.get('/', requireAdmin, (req, res) => {
     try {
-        const { status, category, limit = 50, offset = 0 } = req.query;
+        const { status, category, limit = 100, offset = 0 } = req.query;
 
         let query = `
             SELECT 
@@ -86,6 +101,22 @@ router.get('/', requireAdmin, (req, res) => {
 
         const reports = db.prepare(query).all(...params);
 
+        // Get total count
+        let countQuery = 'SELECT COUNT(*) as total FROM crime_reports WHERE 1=1';
+        const countParams = [];
+        
+        if (status) {
+            countQuery += ' AND status = ?';
+            countParams.push(status);
+        }
+        
+        if (category) {
+            countQuery += ' AND category = ?';
+            countParams.push(category);
+        }
+
+        const totalCount = db.prepare(countQuery).get(...countParams);
+
         reports.forEach(report => {
             if (report.evidence_files) {
                 report.evidence_files = JSON.parse(report.evidence_files);
@@ -94,12 +125,14 @@ router.get('/', requireAdmin, (req, res) => {
                 report.reporter_email = null;
                 report.reporter_name = null;
             }
+            // Use crime location for display
+            report.location_address = report.crime_location_address;
         });
 
         res.json({
             success: true,
             reports,
-            total: reports.length
+            total: totalCount.total
         });
 
     } catch (error) {
@@ -119,9 +152,9 @@ router.get('/map', (req, res) => {
             SELECT 
                 id,
                 category,
-                location_lat,
-                location_lng,
-                location_address,
+                crime_location_lat as location_lat,
+                crime_location_lng as location_lng,
+                crime_location_address as location_address,
                 date_time,
                 status
             FROM crime_reports

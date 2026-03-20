@@ -5,13 +5,14 @@ const { requireAdmin } = require('../middleware/auth');
 
 router.get('/dashboard', requireAdmin, (req, res) => {
     try {
-        const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE role = "user"').get();
+        // Count users with role 'user' (not admin)
+        const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'user'").get();
         const totalReports = db.prepare('SELECT COUNT(*) as count FROM crime_reports').get();
-        const pendingReports = db.prepare('SELECT COUNT(*) as count FROM crime_reports WHERE status = "pending"').get();
-        const activeSOS = db.prepare('SELECT COUNT(*) as count FROM sos_alerts WHERE status = "active"').get();
+        const pendingReports = db.prepare("SELECT COUNT(*) as count FROM crime_reports WHERE status = 'pending'").get();
+        const activeSOS = db.prepare("SELECT COUNT(*) as count FROM sos_alerts WHERE status = 'active'").get();
 
         const recentReports = db.prepare(`
-            SELECT id, category, location_address, status, created_at
+            SELECT id, category, crime_location_address as location_address, status, created_at
             FROM crime_reports
             ORDER BY created_at DESC
             LIMIT 5
