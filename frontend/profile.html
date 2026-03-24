@@ -111,6 +111,89 @@
                                 </div>
                             </div>
 
+                            <div class="card" style="background: #fef2f2; border: 2px solid #ef4444; margin-top: 2rem;">
+                                <div class="card-header" style="background: #fee2e2; border-bottom: 1px solid #ef4444;">
+                                    <h3 style="margin: 0; color: #991b1b;">🚨 Emergency Contacts (For SOS Alerts)</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p style="color: #991b1b; margin-bottom: 1.5rem;">
+                                        These contacts will be notified when you send an SOS alert. Please provide at least one emergency contact.
+                                    </p>
+
+                                    <h4 style="color: #991b1b;">Contact 1 (Primary)</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group">
+                                            <label for="emergencyContact1Name">Name</label>
+                                            <input type="text" id="emergencyContact1Name" name="emergencyContact1Name" placeholder="Full Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact1Phone">Phone Number</label>
+                                            <input type="tel" id="emergencyContact1Phone" name="emergencyContact1Phone" placeholder="+91-XXXXXXXXXX">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact1Relation">Relation</label>
+                                            <select id="emergencyContact1Relation" name="emergencyContact1Relation">
+                                                <option value="">Select Relation</option>
+                                                <option value="Parent">Parent</option>
+                                                <option value="Spouse">Spouse</option>
+                                                <option value="Sibling">Sibling</option>
+                                                <option value="Friend">Friend</option>
+                                                <option value="Relative">Relative</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h4 style="color: #991b1b;">Contact 2 (Secondary)</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group">
+                                            <label for="emergencyContact2Name">Name</label>
+                                            <input type="text" id="emergencyContact2Name" name="emergencyContact2Name" placeholder="Full Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact2Phone">Phone Number</label>
+                                            <input type="tel" id="emergencyContact2Phone" name="emergencyContact2Phone" placeholder="+91-XXXXXXXXXX">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact2Relation">Relation</label>
+                                            <select id="emergencyContact2Relation" name="emergencyContact2Relation">
+                                                <option value="">Select Relation</option>
+                                                <option value="Parent">Parent</option>
+                                                <option value="Spouse">Spouse</option>
+                                                <option value="Sibling">Sibling</option>
+                                                <option value="Friend">Friend</option>
+                                                <option value="Relative">Relative</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h4 style="color: #991b1b;">Contact 3 (Optional)</h4>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                        <div class="form-group">
+                                            <label for="emergencyContact3Name">Name</label>
+                                            <input type="text" id="emergencyContact3Name" name="emergencyContact3Name" placeholder="Full Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact3Phone">Phone Number</label>
+                                            <input type="tel" id="emergencyContact3Phone" name="emergencyContact3Phone" placeholder="+91-XXXXXXXXXX">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="emergencyContact3Relation">Relation</label>
+                                            <select id="emergencyContact3Relation" name="emergencyContact3Relation">
+                                                <option value="">Select Relation</option>
+                                                <option value="Parent">Parent</option>
+                                                <option value="Spouse">Spouse</option>
+                                                <option value="Sibling">Sibling</option>
+                                                <option value="Friend">Friend</option>
+                                                <option value="Relative">Relative</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-primary btn-large">
                                 <span class="btn-text">Update Profile</span>
                                 <span class="btn-loader" style="display: none;">Updating...</span>
@@ -194,7 +277,17 @@
                 city: form.city.value,
                 state: form.state.value,
                 pincode: form.pincode.value,
-                aadharNumber: form.aadharNumber.value
+                aadharNumber: form.aadharNumber.value,
+                // Emergency contacts
+                emergencyContact1Name: form.emergencyContact1Name.value,
+                emergencyContact1Phone: form.emergencyContact1Phone.value,
+                emergencyContact1Relation: form.emergencyContact1Relation.value,
+                emergencyContact2Name: form.emergencyContact2Name.value,
+                emergencyContact2Phone: form.emergencyContact2Phone.value,
+                emergencyContact2Relation: form.emergencyContact2Relation.value,
+                emergencyContact3Name: form.emergencyContact3Name.value,
+                emergencyContact3Phone: form.emergencyContact3Phone.value,
+                emergencyContact3Relation: form.emergencyContact3Relation.value
             };
 
             submitBtn.disabled = true;
@@ -254,6 +347,21 @@
             }
             e.target.value = formatted;
         });
+
+        document.getElementById('aadharNumber').value = user.aadhar_number || '';
+                    
+                    // Load emergency contacts
+                    document.getElementById('emergencyContact1Name').value = user.emergency_contact_1_name || '';
+                    document.getElementById('emergencyContact1Phone').value = user.emergency_contact_1_phone || '';
+                    document.getElementById('emergencyContact1Relation').value = user.emergency_contact_1_relation || '';
+                    
+                    document.getElementById('emergencyContact2Name').value = user.emergency_contact_2_name || '';
+                    document.getElementById('emergencyContact2Phone').value = user.emergency_contact_2_phone || '';
+                    document.getElementById('emergencyContact2Relation').value = user.emergency_contact_2_relation || '';
+                    
+                    document.getElementById('emergencyContact3Name').value = user.emergency_contact_3_name || '';
+                    document.getElementById('emergencyContact3Phone').value = user.emergency_contact_3_phone || '';
+                    document.getElementById('emergencyContact3Relation').value = user.emergency_contact_3_relation || '';
     </script>
 </body>
 </html>

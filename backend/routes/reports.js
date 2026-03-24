@@ -77,9 +77,25 @@ router.get('/', requireAdmin, (req, res) => {
 
         let query = `
             SELECT 
-                r.*,
+                r.id,
+                r.user_id,
+                r.category,
+                r.description,
+                r.crime_location_lat,
+                r.crime_location_lng,
+                r.crime_location_address,
+                r.user_location_lat,
+                r.user_location_lng,
+                r.user_location_address,
+                r.date_time,
+                r.evidence_files,
+                r.status,
+                r.anonymous,
+                r.created_at,
+                r.updated_at,
                 u.email as reporter_email,
-                u.full_name as reporter_name
+                u.full_name as reporter_name,
+                u.phone as reporter_phone
             FROM crime_reports r
             LEFT JOIN users u ON r.user_id = u.id
             WHERE 1=1
@@ -99,9 +115,14 @@ router.get('/', requireAdmin, (req, res) => {
         query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
 
+        console.log('Fetching reports with query:', query);
+        console.log('Parameters:', params);
+
         const reports = db.prepare(query).all(...params);
 
-        // Get total count
+        console.log(`Found ${reports.length} reports`);
+
+        // Get total count without filters for pagination
         let countQuery = 'SELECT COUNT(*) as total FROM crime_reports WHERE 1=1';
         const countParams = [];
         
@@ -119,11 +140,17 @@ router.get('/', requireAdmin, (req, res) => {
 
         reports.forEach(report => {
             if (report.evidence_files) {
-                report.evidence_files = JSON.parse(report.evidence_files);
+                try {
+                    report.evidence_files = JSON.parse(report.evidence_files);
+                } catch (e) {
+                    report.evidence_files = [];
+                }
             }
+            // Only hide reporter info if anonymous
             if (report.anonymous) {
                 report.reporter_email = null;
                 report.reporter_name = null;
+                report.reporter_phone = null;
             }
             // Use crime location for display
             report.location_address = report.crime_location_address;
@@ -139,7 +166,7 @@ router.get('/', requireAdmin, (req, res) => {
         console.error('Get reports error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch reports'
+            message: 'Failed to fetch reports: ' + error.message
         });
     }
 });
@@ -192,7 +219,16 @@ router.get('/:id', requireAdmin, (req, res) => {
                 r.*,
                 u.email as reporter_email,
                 u.full_name as reporter_name,
-                u.phone as reporter_phone
+                u.phone as reporter_phone,
+                u.date_of_birth,
+                u.gender,
+                u.address,
+                u.city,
+                u.state,
+                u.pincode,
+                u.aadhar_number,
+                u.is_verified,
+                u.verification_status
             FROM crime_reports r
             LEFT JOIN users u ON r.user_id = u.id
             WHERE r.id = ?
@@ -206,13 +242,27 @@ router.get('/:id', requireAdmin, (req, res) => {
         }
 
         if (report.evidence_files) {
-            report.evidence_files = JSON.parse(report.evidence_files);
+            try {
+                report.evidence_files = JSON.parse(report.evidence_files);
+            } catch (e) {
+                report.evidence_files = [];
+            }
         }
 
+        // If anonymous, hide all reporter details
         if (report.anonymous) {
             report.reporter_email = null;
             report.reporter_name = null;
             report.reporter_phone = null;
+            report.date_of_birth = null;
+            report.gender = null;
+            report.address = null;
+            report.city = null;
+            report.state = null;
+            report.pincode = null;
+            report.aadhar_number = null;
+            report.is_verified = null;
+            report.verification_status = null;
         }
 
         res.json({
@@ -225,47 +275,6 @@ router.get('/:id', requireAdmin, (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch report'
-        });
-    }
-});
-
-router.put('/:id', requireAdmin, (req, res) => {
-    try {
-        const { status } = req.body;
-        const validStatuses = ['pending', 'investigating', 'resolved', 'rejected'];
-
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid status'
-            });
-        }
-
-        const stmt = db.prepare(`
-            UPDATE crime_reports 
-            SET status = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `);
-
-        const result = stmt.run(status, req.params.id);
-
-        if (result.changes === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Report not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Report status updated'
-        });
-
-    } catch (error) {
-        console.error('Update report error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update report'
         });
     }
 });

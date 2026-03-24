@@ -9,6 +9,7 @@ db.pragma('foreign_keys = ON');
 
 function initializeDatabase() {
     // Users table with profile fields
+    // Users table with profile fields and emergency contacts
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +25,15 @@ function initializeDatabase() {
             pincode TEXT,
             aadhar_number TEXT,
             profile_photo TEXT,
+            emergency_contact_1_name TEXT,
+            emergency_contact_1_phone TEXT,
+            emergency_contact_1_relation TEXT,
+            emergency_contact_2_name TEXT,
+            emergency_contact_2_phone TEXT,
+            emergency_contact_2_relation TEXT,
+            emergency_contact_3_name TEXT,
+            emergency_contact_3_phone TEXT,
+            emergency_contact_3_relation TEXT,
             is_verified BOOLEAN DEFAULT 0,
             verification_status TEXT DEFAULT 'pending' CHECK(verification_status IN ('pending', 'verified', 'rejected')),
             role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin')),
