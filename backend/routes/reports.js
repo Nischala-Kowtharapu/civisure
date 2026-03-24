@@ -239,28 +239,22 @@ router.get('/map', (req, res) => {
     }
 });
 
-router.get('/:id', requireAdmin, (req, res) => {
+router.put('/:id', requireAdmin, (req, res) => {
     try {
-        const report = db.prepare(`
-            SELECT 
-                r.*,
-                u.email as reporter_email,
-                u.full_name as reporter_name,
-                u.phone as reporter_phone,
-                u.date_of_birth,
-                u.gender,
-                u.address,
-                u.city,
-                u.state,
-                u.pincode,
-                u.aadhar_number,
-                u.is_verified,
-                u.verification_status
-            FROM crime_reports r
-            LEFT JOIN users u ON r.user_id = u.id
-            WHERE r.id = ?
-        `).get(req.params.id);
+        const { status } = req.body;
+        const validStatuses = ['pending', 'investigating', 'resolved', 'rejected'];
 
+        console.log('Update request:', { reportId: req.params.id, newStatus: status }); // Debug log
+
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status. Must be: pending, investigating, resolved, or rejected'
+            });
+        }
+
+        // Check if report exists
+        const report = db.prepare('SELECT id FROM crime_reports WHERE id = ?').get(req.params.id);
         if (!report) {
             return res.status(404).json({
                 success: false,
@@ -268,40 +262,33 @@ router.get('/:id', requireAdmin, (req, res) => {
             });
         }
 
-        if (report.evidence_files) {
-            try {
-                report.evidence_files = JSON.parse(report.evidence_files);
-            } catch (e) {
-                report.evidence_files = [];
-            }
-        }
+        const stmt = db.prepare(`
+            UPDATE crime_reports 
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `);
 
-        // If anonymous, hide all reporter details
-        if (report.anonymous) {
-            report.reporter_email = null;
-            report.reporter_name = null;
-            report.reporter_phone = null;
-            report.date_of_birth = null;
-            report.gender = null;
-            report.address = null;
-            report.city = null;
-            report.state = null;
-            report.pincode = null;
-            report.aadhar_number = null;
-            report.is_verified = null;
-            report.verification_status = null;
+        const result = stmt.run(status, req.params.id);
+
+        console.log('Update result:', result); // Debug log
+
+        if (result.changes === 0) {
+            return res.status(500).json({
+                success: false,
+                message: 'Update failed - no rows changed'
+            });
         }
 
         res.json({
             success: true,
-            report
+            message: 'Report status updated successfully'
         });
 
     } catch (error) {
-        console.error('Get report error:', error);
+        console.error('Update report error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch report'
+            message: 'Failed to update report: ' + error.message
         });
     }
 });

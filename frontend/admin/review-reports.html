@@ -158,30 +158,15 @@
                     <td>#${report.id}</td>
                     <td>${report.category}</td>
                     <td>${report.description.substring(0, 50)}...</td>
-                    <td>${report.location_address || 'N/A'}</td>
+                    <td>${report.crime_location_address || report.location_address || 'N/A'}</td>
                     <td>
-                        <select class="badge badge-${report.status === 'resolved' ? 'success' : report.status === 'pending' ? 'warning' : 'primary'}" 
-                                onchange="updateStatus(${report.id}, this.value)" 
-                                style="border: none; cursor: pointer; font-size: 0.75rem; font-weight: 500; padding: 0.25rem 0.5rem;">
+                        <select class="status-dropdown" data-report-id="${report.id}" 
+                                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer; background: white; font-size: 0.875rem;">
                             <option value="pending" ${report.status === 'pending' ? 'selected' : ''}>Pending</option>
                             <option value="investigating" ${report.status === 'investigating' ? 'selected' : ''}>Investigating</option>
                             <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>Resolved</option>
                             <option value="rejected" ${report.status === 'rejected' ? 'selected' : ''}>Rejected</option>
                         </select>
-                    </td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-                                <div style="width: ${report.trust_score || 0}%; height: 100%; background: ${
-                                    (report.trust_score || 0) >= 75 ? '#10b981' : 
-                                    (report.trust_score || 0) >= 50 ? '#f59e0b' : '#ef4444'
-                                }; transition: width 0.3s;"></div>
-                            </div>
-                            <span style="font-weight: 600; color: ${
-                                (report.trust_score || 0) >= 75 ? '#10b981' : 
-                                (report.trust_score || 0) >= 50 ? '#f59e0b' : '#ef4444'
-                            };">${report.trust_score || 0}%</span>
-                        </div>
                     </td>
                     <td>${report.anonymous ? 'Yes' : 'No'}</td>
                     <td>${new Date(report.created_at).toLocaleDateString()}</td>
@@ -191,9 +176,20 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Add event listeners to all status dropdowns
+            document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+                dropdown.addEventListener('change', (e) => {
+                    const reportId = e.target.dataset.reportId;
+                    const newStatus = e.target.value;
+                    updateStatus(reportId, newStatus);
+                });
+            });
         }
 
         async function updateStatus(reportId, newStatus) {
+            console.log('Updating report:', reportId, 'to status:', newStatus);
+            
             try {
                 const response = await fetch(`/api/reports/${reportId}`, {
                     method: 'PUT',
@@ -204,16 +200,22 @@
                 });
 
                 const data = await response.json();
+                console.log('Update response:', data);
 
                 if (data.success) {
-                    utils.showToast('Status updated successfully', 'success');
-                    loadReports();
+                    utils.showToast('✅ Status updated successfully!', 'success');
+                    // Reload after short delay
+                    setTimeout(() => {
+                        loadReports();
+                    }, 1000);
                 } else {
-                    utils.showToast('Failed to update status', 'error');
+                    utils.showToast('❌ ' + (data.message || 'Failed to update status'), 'error');
+                    loadReports(); // Reload to reset
                 }
             } catch (error) {
                 console.error('Update status error:', error);
-                utils.showToast('An error occurred', 'error');
+                utils.showToast('❌ Error updating status', 'error');
+                loadReports(); // Reload to reset
             }
         }
 
