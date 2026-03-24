@@ -3,6 +3,7 @@ const router = express.Router();
 const { db } = require('../config/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { verifyReport } = require('../config/aiVerification');
 
 router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
     try {
@@ -27,9 +28,25 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
         }
 
         let evidenceFiles = null;
+        let evidenceFilenames = [];
         if (req.files && req.files.length > 0) {
-            evidenceFiles = JSON.stringify(req.files.map(file => file.filename));
+            evidenceFilenames = req.files.map(file => file.filename);
+            evidenceFiles = JSON.stringify(evidenceFilenames);
         }
+
+        // AI VERIFICATION - Calculate trust score
+        console.log('Running AI verification...');
+        const verification = await verifyReport({
+            description,
+            category,
+            crimeLocationAddress,
+            userLocationAddress,
+            dateTime,
+            evidenceFiles: evidenceFilenames,
+            anonymous: anonymous === 'true'
+        });
+
+        console.log('Verification result:', verification);
 
         const userId = anonymous === 'true' ? null : req.session.userId;
 
@@ -37,8 +54,10 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
             INSERT INTO crime_reports 
             (user_id, category, description, crime_location_lat, crime_location_lng, crime_location_address,
              user_location_lat, user_location_lng, user_location_address,
-             date_time, evidence_files, anonymous)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             date_time, evidence_files, anonymous,
+             trust_score, ai_verification_status, ai_analysis, 
+             location_verified, timestamp_verified, evidence_verified)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
@@ -53,13 +72,21 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
             userLocationAddress || null,
             dateTime,
             evidenceFiles,
-            anonymous === 'true' ? 1 : 0
+            anonymous === 'true' ? 1 : 0,
+            verification.trustScore,
+            verification.verificationStatus,
+            verification.aiAnalysis,
+            verification.locationVerified ? 1 : 0,
+            verification.timestampVerified ? 1 : 0,
+            verification.evidenceVerified ? 1 : 0
         );
 
         res.status(201).json({
             success: true,
             message: 'Crime report submitted successfully',
-            reportId: result.lastInsertRowid
+            reportId: result.lastInsertRowid,
+            trustScore: verification.trustScore,
+            verificationStatus: verification.verificationStatus
         });
 
     } catch (error) {

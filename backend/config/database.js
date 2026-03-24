@@ -43,6 +43,7 @@ function initializeDatabase() {
     `);
 
     // Crime reports table with separate locations
+    // Crime reports table with AI verification
     db.exec(`
         CREATE TABLE IF NOT EXISTS crime_reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +60,14 @@ function initializeDatabase() {
             evidence_files TEXT,
             status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'investigating', 'resolved', 'rejected')),
             anonymous BOOLEAN DEFAULT 1,
+            
+            trust_score REAL DEFAULT 0,
+            ai_verification_status TEXT DEFAULT 'pending' CHECK(ai_verification_status IN ('pending', 'verified', 'suspicious', 'flagged')),
+            ai_analysis TEXT,
+            location_verified BOOLEAN DEFAULT 0,
+            timestamp_verified BOOLEAN DEFAULT 0,
+            evidence_verified BOOLEAN DEFAULT 0,
+            
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL

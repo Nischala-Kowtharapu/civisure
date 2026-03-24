@@ -78,6 +78,7 @@
                                         <th>Description</th>
                                         <th>Location</th>
                                         <th>Status</th>
+                                        <th>Trust Score</th>
                                         <th>Anonymous</th>
                                         <th>Date</th>
                                         <th>Actions</th>
@@ -168,6 +169,20 @@
                             <option value="rejected" ${report.status === 'rejected' ? 'selected' : ''}>Rejected</option>
                         </select>
                     </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${report.trust_score || 0}%; height: 100%; background: ${
+                                    (report.trust_score || 0) >= 75 ? '#10b981' : 
+                                    (report.trust_score || 0) >= 50 ? '#f59e0b' : '#ef4444'
+                                }; transition: width 0.3s;"></div>
+                            </div>
+                            <span style="font-weight: 600; color: ${
+                                (report.trust_score || 0) >= 75 ? '#10b981' : 
+                                (report.trust_score || 0) >= 50 ? '#f59e0b' : '#ef4444'
+                            };">${report.trust_score || 0}%</span>
+                        </div>
+                    </td>
                     <td>${report.anonymous ? 'Yes' : 'No'}</td>
                     <td>${new Date(report.created_at).toLocaleDateString()}</td>
                     <td>
@@ -210,79 +225,49 @@
                 if (data.success) {
                     const report = data.report;
                     
-                    let reporterSection = '';
-                    if (!report.anonymous && report.reporter_name) {
-                        reporterSection = `
-                            <div style="background: #dbeafe; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid #2563eb;">
-                                <h3 style="color: #1e40af; margin-top: 0;">👤 Reporter Profile</h3>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                    <div>
-                                        <p><strong>Name:</strong> ${report.reporter_name}</p>
-                                        <p><strong>Email:</strong> ${report.reporter_email}</p>
-                                        <p><strong>Phone:</strong> ${report.reporter_phone || 'Not provided'}</p>
-                                        ${report.gender ? `<p><strong>Gender:</strong> ${report.gender}</p>` : ''}
-                                        ${report.date_of_birth ? `<p><strong>Date of Birth:</strong> ${new Date(report.date_of_birth).toLocaleDateString()}</p>` : ''}
-                                    </div>
-                                    <div>
-                                        ${report.address ? `<p><strong>Address:</strong> ${report.address}</p>` : ''}
-                                        ${report.city ? `<p><strong>City:</strong> ${report.city}, ${report.state || ''}</p>` : ''}
-                                        ${report.pincode ? `<p><strong>Pincode:</strong> ${report.pincode}</p>` : ''}
-                                        ${report.aadhar_number ? `<p><strong>Aadhar:</strong> ${report.aadhar_number}</p>` : ''}
-                                        ${report.is_verified ? `<p><strong>Verified:</strong> <span class="badge badge-success">✅ Verified User</span></p>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    } else if (report.anonymous) {
-                        reporterSection = `
-                            <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid #f59e0b;">
-                                <p style="margin: 0; color: #92400e;"><strong>🕵️ Anonymous Report:</strong> Reporter identity is protected</p>
-                            </div>
-                        `;
-                    }
-
+                    // Trust score color
+                    const trustColor = report.trust_score >= 75 ? '#10b981' : 
+                                      report.trust_score >= 50 ? '#f59e0b' : '#ef4444';
+                    
                     document.getElementById('reportDetails').innerHTML = `
                         <div style="line-height: 1.8;">
                             <p><strong>Report ID:</strong> #${report.id}</p>
-                            <p><strong>Category:</strong> <span class="badge badge-primary">${report.category}</span></p>
-                            <p><strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}</p>
-                            <p><strong>Status:</strong> <span class="badge badge-${report.status === 'resolved' ? 'success' : report.status === 'pending' ? 'warning' : 'primary'}">${report.status.toUpperCase()}</span></p>
+                            <p><strong>Category:</strong> ${report.category}</p>
                             
-                            ${reporterSection}
-                            
-                            <h3 style="margin-top: 1.5rem; color: #1f2937;">📋 Incident Details:</h3>
-                            <p><strong>Date/Time of Incident:</strong> ${new Date(report.date_time).toLocaleString()}</p>
-                            <p><strong>Description:</strong></p>
-                            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                                ${report.description}
+                            <div style="background: ${trustColor}20; padding: 1rem; border-radius: 8px; border-left: 4px solid ${trustColor}; margin: 1rem 0;">
+                                <h3 style="margin: 0 0 0.5rem 0; color: ${trustColor};">🤖 AI Trust Score: ${report.trust_score}%</h3>
+                                <p style="margin: 0;"><strong>Verification Status:</strong> ${report.ai_verification_status}</p>
+                                <p style="margin: 0.5rem 0 0 0;"><strong>Analysis:</strong> ${report.ai_analysis || 'No analysis available'}</p>
+                                <div style="margin-top: 0.5rem; display: flex; gap: 1rem;">
+                                    <span>📍 Location: ${report.location_verified ? '✅' : '❌'}</span>
+                                    <span>⏰ Timestamp: ${report.timestamp_verified ? '✅' : '❌'}</span>
+                                    <span>📎 Evidence: ${report.evidence_verified ? '✅' : '❌'}</span>
+                                </div>
                             </div>
+                            
+                            <p><strong>Description:</strong><br>${report.description}</p>
                             
                             <h3 style="margin-top: 1.5rem; color: #ef4444;">🚨 Crime Location:</h3>
                             <p><strong>Address:</strong> ${report.crime_location_address || 'Not specified'}</p>
                             <p><strong>Coordinates:</strong> ${report.crime_location_lat}, ${report.crime_location_lng}</p>
-                            <a href="https://www.google.com/maps?q=${report.crime_location_lat},${report.crime_location_lng}" 
-                               target="_blank" 
-                               class="btn btn-small btn-primary" 
-                               style="display: inline-block; margin-top: 0.5rem;">
-                                📍 View on Google Maps
-                            </a>
                             
                             ${report.user_location_lat ? `
-                                <h3 style="margin-top: 1.5rem; color: #10b981;">📱 Reporter's Location (at time of report):</h3>
+                                <h3 style="margin-top: 1.5rem; color: #10b981;">📱 Reporter's Location:</h3>
                                 <p><strong>Address:</strong> ${report.user_location_address || 'Not specified'}</p>
                                 <p><strong>Coordinates:</strong> ${report.user_location_lat}, ${report.user_location_lng}</p>
                             ` : ''}
                             
+                            <p style="margin-top: 1.5rem;"><strong>Date/Time:</strong> ${new Date(report.date_time).toLocaleString()}</p>
+                            <p><strong>Status:</strong> <span class="badge badge-${report.status === 'resolved' ? 'success' : 'warning'}">${report.status}</span></p>
+                            <p><strong>Anonymous:</strong> ${report.anonymous ? 'Yes' : 'No'}</p>
+                            ${!report.anonymous && report.reporter_name ? `<p><strong>Reporter:</strong> ${report.reporter_name} (${report.reporter_email})</p>` : ''}
                             ${report.evidence_files && report.evidence_files.length > 0 ? `
-                                <h3 style="margin-top: 1.5rem; color: #1f2937;">📎 Evidence Files:</h3>
-                                <ul style="list-style: none; padding: 0;">
-                                    ${report.evidence_files.map(file => `
-                                        <li style="padding: 0.5rem; background: #f9fafb; margin-bottom: 0.5rem; border-radius: 4px;">
-                                            <a href="/uploads/${file}" target="_blank" style="color: #2563eb;">📄 ${file}</a>
-                                        </li>
-                                    `).join('')}
+                                <p><strong>Evidence Files:</strong></p>
+                                <ul>
+                                    ${report.evidence_files.map(file => `<li><a href="/uploads/${file}" target="_blank">${file}</a></li>`).join('')}
                                 </ul>
                             ` : ''}
+                            <p><strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}</p>
                         </div>
                     `;
                     utils.showModal('reportModal');
