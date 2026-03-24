@@ -42,7 +42,6 @@ function initializeDatabase() {
         )
     `);
 
-    // Crime reports table with separate locations
     // Crime reports table with AI verification
     db.exec(`
         CREATE TABLE IF NOT EXISTS crime_reports (

@@ -35,7 +35,7 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
         }
 
         // AI VERIFICATION - Calculate trust score
-        console.log('Running AI verification...');
+        console.log('🤖 Running AI verification...');
         const verification = await verifyReport({
             description,
             category,
@@ -46,7 +46,7 @@ router.post('/', requireAuth, upload.array('evidence', 5), async (req, res) => {
             anonymous: anonymous === 'true'
         });
 
-        console.log('Verification result:', verification);
+        console.log('✅ Trust Score:', verification.trustScore + '%');
 
         const userId = anonymous === 'true' ? null : req.session.userId;
 
@@ -239,12 +239,65 @@ router.get('/map', (req, res) => {
     }
 });
 
+// GET single report by ID — used by the "View" button in review-reports.html
+router.get('/:id', requireAdmin, (req, res) => {
+    try {
+        const report = db.prepare(`
+            SELECT 
+                r.*,
+                u.email as reporter_email,
+                u.full_name as reporter_name,
+                u.phone as reporter_phone
+            FROM crime_reports r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.id = ?
+        `).get(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({
+                success: false,
+                message: 'Report not found'
+            });
+        }
+
+        // Parse evidence files JSON string into array
+        if (report.evidence_files) {
+            try {
+                report.evidence_files = JSON.parse(report.evidence_files);
+            } catch (e) {
+                report.evidence_files = [];
+            }
+        } else {
+            report.evidence_files = [];
+        }
+
+        // Hide reporter identity if anonymous
+        if (report.anonymous) {
+            report.reporter_email = null;
+            report.reporter_name = null;
+            report.reporter_phone = null;
+        }
+
+        res.json({
+            success: true,
+            report
+        });
+
+    } catch (error) {
+        console.error('Get single report error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch report: ' + error.message
+        });
+    }
+});
+
 router.put('/:id', requireAdmin, (req, res) => {
     try {
         const { status } = req.body;
         const validStatuses = ['pending', 'investigating', 'resolved', 'rejected'];
 
-        console.log('Update request:', { reportId: req.params.id, newStatus: status }); // Debug log
+        console.log('📝 Status update request:', { reportId: req.params.id, newStatus: status });
 
         if (!status || !validStatuses.includes(status)) {
             return res.status(400).json({
@@ -262,6 +315,7 @@ router.put('/:id', requireAdmin, (req, res) => {
             });
         }
 
+        // Update status
         const stmt = db.prepare(`
             UPDATE crime_reports 
             SET status = ?, updated_at = CURRENT_TIMESTAMP
@@ -270,7 +324,7 @@ router.put('/:id', requireAdmin, (req, res) => {
 
         const result = stmt.run(status, req.params.id);
 
-        console.log('Update result:', result); // Debug log
+        console.log('✅ Status updated:', result.changes, 'rows affected');
 
         if (result.changes === 0) {
             return res.status(500).json({
@@ -285,7 +339,7 @@ router.put('/:id', requireAdmin, (req, res) => {
         });
 
     } catch (error) {
-        console.error('Update report error:', error);
+        console.error('❌ Update report error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to update report: ' + error.message

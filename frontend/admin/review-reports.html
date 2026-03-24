@@ -148,11 +148,15 @@
             tbody.innerHTML = '';
 
             if (reports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #6b7280;">No reports found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: #6b7280;">No reports found</td></tr>';
                 return;
             }
 
             reports.forEach(report => {
+                const trustScore = report.trust_score || 0;
+                const trustColor = trustScore >= 75 ? '#10b981' : 
+                                  trustScore >= 50 ? '#f59e0b' : '#ef4444';
+                
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>#${report.id}</td>
@@ -161,12 +165,20 @@
                     <td>${report.crime_location_address || report.location_address || 'N/A'}</td>
                     <td>
                         <select class="status-dropdown" data-report-id="${report.id}" 
-                                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer; background: white; font-size: 0.875rem;">
+                                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer; background: white; font-size: 0.875rem; font-weight: 500;">
                             <option value="pending" ${report.status === 'pending' ? 'selected' : ''}>Pending</option>
                             <option value="investigating" ${report.status === 'investigating' ? 'selected' : ''}>Investigating</option>
                             <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>Resolved</option>
                             <option value="rejected" ${report.status === 'rejected' ? 'selected' : ''}>Rejected</option>
                         </select>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${trustScore}%; height: 100%; background: ${trustColor}; transition: width 0.3s;"></div>
+                            </div>
+                            <span style="font-weight: 600; font-size: 0.875rem; color: ${trustColor};">${trustScore}%</span>
+                        </div>
                     </td>
                     <td>${report.anonymous ? 'Yes' : 'No'}</td>
                     <td>${new Date(report.created_at).toLocaleDateString()}</td>
@@ -179,16 +191,23 @@
 
             // Add event listeners to all status dropdowns
             document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-                dropdown.addEventListener('change', (e) => {
+                dropdown.addEventListener('change', async (e) => {
                     const reportId = e.target.dataset.reportId;
                     const newStatus = e.target.value;
-                    updateStatus(reportId, newStatus);
+                    const originalValue = e.target.querySelector(`option[value="${report.status}"]`).value;
+                    
+                    // Show confirmation
+                    if (confirm(`Change status to "${newStatus}"?`)) {
+                        await updateStatus(reportId, newStatus);
+                    } else {
+                        e.target.value = originalValue; // Reset if cancelled
+                    }
                 });
             });
         }
 
         async function updateStatus(reportId, newStatus) {
-            console.log('Updating report:', reportId, 'to status:', newStatus);
+            console.log('Updating report #' + reportId + ' to: ' + newStatus);
             
             try {
                 const response = await fetch(`/api/reports/${reportId}`, {
@@ -203,19 +222,19 @@
                 console.log('Update response:', data);
 
                 if (data.success) {
-                    utils.showToast('✅ Status updated successfully!', 'success');
-                    // Reload after short delay
+                    utils.showToast('✅ Status updated to: ' + newStatus, 'success');
+                    // Reload after 1 second
                     setTimeout(() => {
                         loadReports();
                     }, 1000);
                 } else {
-                    utils.showToast('❌ ' + (data.message || 'Failed to update status'), 'error');
-                    loadReports(); // Reload to reset
+                    utils.showToast('❌ ' + (data.message || 'Failed to update'), 'error');
+                    loadReports();
                 }
             } catch (error) {
-                console.error('Update status error:', error);
-                utils.showToast('❌ Error updating status', 'error');
-                loadReports(); // Reload to reset
+                console.error('Update error:', error);
+                utils.showToast('❌ Network error', 'error');
+                loadReports();
             }
         }
 
@@ -227,23 +246,42 @@
                 if (data.success) {
                     const report = data.report;
                     
-                    // Trust score color
-                    const trustColor = report.trust_score >= 75 ? '#10b981' : 
-                                      report.trust_score >= 50 ? '#f59e0b' : '#ef4444';
+                    // Trust score styling
+                    const trustScore = report.trust_score || 0;
+                    const trustColor = trustScore >= 75 ? '#10b981' : 
+                                      trustScore >= 50 ? '#f59e0b' : '#ef4444';
+                    const trustBg = trustScore >= 75 ? '#d1fae5' : 
+                                   trustScore >= 50 ? '#fef3c7' : '#fee2e2';
                     
                     document.getElementById('reportDetails').innerHTML = `
                         <div style="line-height: 1.8;">
                             <p><strong>Report ID:</strong> #${report.id}</p>
                             <p><strong>Category:</strong> ${report.category}</p>
                             
-                            <div style="background: ${trustColor}20; padding: 1rem; border-radius: 8px; border-left: 4px solid ${trustColor}; margin: 1rem 0;">
-                                <h3 style="margin: 0 0 0.5rem 0; color: ${trustColor};">🤖 AI Trust Score: ${report.trust_score}%</h3>
-                                <p style="margin: 0;"><strong>Verification Status:</strong> ${report.ai_verification_status}</p>
-                                <p style="margin: 0.5rem 0 0 0;"><strong>Analysis:</strong> ${report.ai_analysis || 'No analysis available'}</p>
-                                <div style="margin-top: 0.5rem; display: flex; gap: 1rem;">
-                                    <span>📍 Location: ${report.location_verified ? '✅' : '❌'}</span>
-                                    <span>⏰ Timestamp: ${report.timestamp_verified ? '✅' : '❌'}</span>
-                                    <span>📎 Evidence: ${report.evidence_verified ? '✅' : '❌'}</span>
+                            <!-- AI TRUST SCORE DISPLAY -->
+                            <div style="background: ${trustBg}; padding: 1.5rem; border-radius: 8px; border-left: 4px solid ${trustColor}; margin: 1.5rem 0;">
+                                <h3 style="margin: 0 0 1rem 0; color: ${trustColor}; display: flex; align-items: center; gap: 0.5rem;">
+                                    🤖 AI Trust Score: ${trustScore}%
+                                    <div style="flex: 1; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden;">
+                                        <div style="width: ${trustScore}%; height: 100%; background: ${trustColor}; transition: width 0.5s;"></div>
+                                    </div>
+                                </h3>
+                                <p style="margin: 0.5rem 0;"><strong>Verification Status:</strong> 
+                                    <span style="text-transform: uppercase; font-weight: 600; color: ${trustColor};">
+                                        ${report.ai_verification_status || 'pending'}
+                                    </span>
+                                </p>
+                                <p style="margin: 0.5rem 0;"><strong>AI Analysis:</strong> ${report.ai_analysis || 'No analysis available'}</p>
+                                <div style="margin-top: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${report.location_verified ? '✅' : '❌'} <strong>Location Verified</strong>
+                                    </span>
+                                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${report.timestamp_verified ? '✅' : '❌'} <strong>Timestamp Valid</strong>
+                                    </span>
+                                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${report.evidence_verified ? '✅' : '❌'} <strong>Evidence Attached</strong>
+                                    </span>
                                 </div>
                             </div>
                             
@@ -259,16 +297,16 @@
                                 <p><strong>Coordinates:</strong> ${report.user_location_lat}, ${report.user_location_lng}</p>
                             ` : ''}
                             
-                            <p style="margin-top: 1.5rem;"><strong>Date/Time:</strong> ${new Date(report.date_time).toLocaleString()}</p>
-                            <p><strong>Status:</strong> <span class="badge badge-${report.status === 'resolved' ? 'success' : 'warning'}">${report.status}</span></p>
+                            <p style="margin-top: 1.5rem;"><strong>Incident Date/Time:</strong> ${new Date(report.date_time).toLocaleString()}</p>
+                            <p><strong>Status:</strong> <span class="badge badge-${report.status === 'resolved' ? 'success' : report.status === 'pending' ? 'warning' : 'primary'}">${report.status}</span></p>
                             <p><strong>Anonymous:</strong> ${report.anonymous ? 'Yes' : 'No'}</p>
                             ${!report.anonymous && report.reporter_name ? `<p><strong>Reporter:</strong> ${report.reporter_name} (${report.reporter_email})</p>` : ''}
                             ${report.evidence_files && report.evidence_files.length > 0 ? `
-                                <p><strong>Evidence Files:</strong></p>
+                                <p><strong>Evidence Files (${report.evidence_files.length}):</strong></p>
                                 <ul>
                                     ${report.evidence_files.map(file => `<li><a href="/uploads/${file}" target="_blank">${file}</a></li>`).join('')}
                                 </ul>
-                            ` : ''}
+                            ` : '<p><strong>Evidence Files:</strong> None</p>'}
                             <p><strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}</p>
                         </div>
                     `;
