@@ -34,17 +34,7 @@
             </div>
 
             <div class="content-area">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Verification Status</h2>
-                    </div>
-                    <div class="card-body">
-                        <div id="verificationStatus" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem;"></div>
-                        <p style="color: #6b7280; font-size: 0.875rem;">
-                            Complete your profile with Aadhar details to get verified and unlock all features.
-                        </p>
-                    </div>
-                </div>
+                
 
                 <div class="card">
                     <div class="card-header">
@@ -60,12 +50,14 @@
 
                                 <div class="form-group">
                                     <label for="email">Email Address</label>
-                                    <input type="email" id="email" name="email" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                                    <input type="email" id="email" name="email"
+                                     style="background-color: #f3f4f6;">
                                 </div>
 
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
-                                    <input type="tel" id="phone" name="phone" placeholder="+91-XXXXXXXXXX">
+                                    <input type="tel" id="phone" name="phone" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10">
+                                    <small>Enter 10-digit mobile number (numbers only)</small>
                                 </div>
 
                                 <div class="form-group">
@@ -220,6 +212,10 @@
                 auth.logout();
             }
         });
+        // Phone number validation - only numbers, max 10 digits
+        document.getElementById('phone').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+        });
 
         async function loadProfile() {
             try {
@@ -242,17 +238,7 @@
                     document.getElementById('aadharNumber').value = user.aadhar_number || '';
 
                     // Show verification status
-                    const statusDiv = document.getElementById('verificationStatus');
-                    if (user.is_verified) {
-                        statusDiv.innerHTML = '<strong style="color: #10b981;">✅ Verified User</strong><p style="margin: 0.5rem 0 0 0;">Your account is verified. You can access all features.</p>';
-                        statusDiv.style.backgroundColor = '#d1fae5';
-                    } else if (user.verification_status === 'pending') {
-                        statusDiv.innerHTML = '<strong style="color: #f59e0b;">⏳ Verification Pending</strong><p style="margin: 0.5rem 0 0 0;">Your verification is under review. This may take 24-48 hours.</p>';
-                        statusDiv.style.backgroundColor = '#fef3c7';
-                    } else {
-                        statusDiv.innerHTML = '<strong style="color: #ef4444;">❌ Not Verified</strong><p style="margin: 0.5rem 0 0 0;">Please complete your profile with Aadhar details to get verified.</p>';
-                        statusDiv.style.backgroundColor = '#fee2e2';
-                    }
+                   
                 }
             } catch (error) {
                 console.error('Load profile error:', error);
@@ -311,9 +297,8 @@
                     messageDiv.className = 'message success';
                     messageDiv.style.display = 'block';
                     
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
+                    // Don't reload - just show success message
+                    // Profile data stays on screen
                 } else {
                     messageDiv.textContent = data.message || 'Failed to update profile';
                     messageDiv.className = 'message error';

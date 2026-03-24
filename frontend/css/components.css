@@ -525,6 +525,18 @@ table tbody tr:hover {
 .chat-input button {
     padding: 0.75rem 1.5rem;
 }
+/* Phone number input */
+input[type="tel"] {
+    letter-spacing: 1px;
+}
+
+input[type="tel"]:invalid {
+    border-color: #ef4444;
+}
+
+input[type="tel"]:valid {
+    border-color: #10b981;
+}
 
 /* Map Container */
 .map-container {

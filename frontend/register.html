@@ -29,7 +29,8 @@
 
                 <div class="form-group">
                     <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" placeholder="+1234567890">
+                    <input type="tel" id="phone" name="phone" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10">
+<small>Enter 10-digit mobile number (numbers only)</small>
                     <small>Optional - for emergency contact</small>
                 </div>
 
@@ -166,5 +167,11 @@
             }
         });
     </script>
+    <script>
+    // Phone number validation - only numbers, max 10 digits
+    document.getElementById('phone').addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    });
+</script>
 </body>
 </html>

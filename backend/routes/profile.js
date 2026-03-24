@@ -5,35 +5,76 @@ const { requireAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 // Get user profile
-router.get('/', requireAuth, (req, res) => {
+router.put('/', requireAuth, (req, res) => {
     try {
-        const user = db.prepare(`
+        const { fullName, phone, dateOfBirth, gender, address, city, state, pincode, aadharNumber } = req.body;
+
+        const updateFields = [];
+        const values = [];
+
+        if (fullName) {
+            updateFields.push('full_name = ?');
+            values.push(fullName);
+        }
+        if (phone) {
+            updateFields.push('phone = ?');
+            values.push(phone);
+        }
+        if (dateOfBirth) {
+            updateFields.push('date_of_birth = ?');
+            values.push(dateOfBirth);
+        }
+        if (gender) {
+            updateFields.push('gender = ?');
+            values.push(gender);
+        }
+        if (address) {
+            updateFields.push('address = ?');
+            values.push(address);
+        }
+        if (city) {
+            updateFields.push('city = ?');
+            values.push(city);
+        }
+        if (state) {
+            updateFields.push('state = ?');
+            values.push(state);
+        }
+        if (pincode) {
+            updateFields.push('pincode = ?');
+            values.push(pincode);
+        }
+        if (aadharNumber) {
+            updateFields.push('aadhar_number = ?');
+            values.push(aadharNumber);
+        }
+
+        values.push(req.session.userId);
+
+        if (updateFields.length > 0) {
+            const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+            db.prepare(query).run(...values);
+        }
+
+        // Get updated user data
+        const updatedUser = db.prepare(`
             SELECT id, email, full_name, phone, date_of_birth, gender, 
-                   address, city, state, pincode, aadhar_number, profile_photo,
-                   emergency_contact_1_name, emergency_contact_1_phone, emergency_contact_1_relation,
-                   emergency_contact_2_name, emergency_contact_2_phone, emergency_contact_2_relation,
-                   emergency_contact_3_name, emergency_contact_3_phone, emergency_contact_3_relation,
+                   address, city, state, pincode, aadhar_number,
                    is_verified, verification_status, created_at
             FROM users WHERE id = ?
         `).get(req.session.userId);
 
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
         res.json({
             success: true,
-            user
+            message: 'Profile updated successfully',
+            user: updatedUser
         });
 
     } catch (error) {
-        console.error('Get profile error:', error);
+        console.error('Update profile error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch profile'
+            message: 'Failed to update profile'
         });
     }
 });
@@ -164,6 +205,38 @@ router.put('/', requireAuth, upload.single('profilePhoto'), (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update profile'
+        });
+    }
+});
+
+router.get('/', requireAuth, (req, res) => {
+    try {
+
+        const user = db.prepare(`
+            SELECT id, email, full_name, phone, date_of_birth, gender,
+                   address, city, state, pincode, aadhar_number,
+                   is_verified, verification_status, created_at
+            FROM users
+            WHERE id = ?
+        `).get(req.session.userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            user: user
+        });
+
+    } catch (error) {
+        console.error("Get profile error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch profile"
         });
     }
 });
