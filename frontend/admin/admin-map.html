@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Map - CiviSure Admin</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #adminMap { height: 580px; width: 100%; border-radius: 8px; }
+        .distance-badge {
+            background: #1e40af;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .admin-location-bar {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .crime-popup h4 { margin: 0 0 6px 0; }
+        .crime-popup p { margin: 3px 0; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🚨 CiviSure Admin</h2>
+            </div>
+            <nav>
+                <ul class="sidebar-menu">
+                    <li><a href="admin-dashboard.html">📊 Dashboard</a></li>
+                    <li><a href="review-reports.html">📝 Review Reports</a></li>
+                    <li><a href="admin-map.html" class="active">🗺️ Live Crime Map</a></li>
+                    <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1>🗺️ Live Crime Map</h1>
+                <button class="btn btn-primary" id="refreshBtn">🔄 Refresh</button>
+            </div>
+
+            <div class="content-area">
+                <!-- Admin location status bar -->
+                <div class="admin-location-bar" id="adminLocBar">
+                    📍 Fetching your location...
+                </div>
+
+                <!-- Filters -->
+                <div class="filters" style="margin-bottom: 1rem;">
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="catFilter">
+                                <option value="">All</option>
+                                <option value="Theft">Theft/Robbery</option>
+                                <option value="Assault">Assault</option>
+                                <option value="Vandalism">Vandalism</option>
+                                <option value="Harassment">Harassment</option>
+                                <option value="Fraud">Fraud</option>
+                                <option value="Drug">Drug-related</option>
+                                <option value="Traffic">Traffic</option>
+                                <option value="Domestic">Domestic Violence</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Period</label>
+                            <select id="daysFilter">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;">
+                            <button class="btn btn-primary" id="applyFilters">Apply</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Crime Locations</h2>
+                        <span id="crimeCount" style="color:#6b7280;font-size:0.875rem;"></span>
+                    </div>
+                    <div id="adminMap"></div>
+                </div>
+
+                <!-- Distance Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📏 Distance from Your Location</h2>
+                        <span style="font-size:0.8rem;color:#6b7280;">Sorted nearest first</span>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Category</th>
+                                        <th>Address</th>
+                                        <th>Status</th>
+                                        <th>Distance</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="distanceTable">
+                                    <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7280;">Waiting for location...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        (async () => { await auth.requireAdmin(); })();
+
+        document.getElementById('logoutBtn').addEventListener('click', e => {
+            e.preventDefault();
+            if (confirm('Logout?')) auth.logout();
+        });
+
+        // ── State ──────────────────────────────────────────────
+        let map, adminMarker, crimeMarkers = [], adminLatLng = null, allReports = [];
+
+        // ── Haversine distance (km) ────────────────────────────
+        function haversine(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 +
+                      Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+                      Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function formatDistance(km) {
+            return km < 1 ? (km * 1000).toFixed(0) + ' m' : km.toFixed(2) + ' km';
+        }
+
+        // ── Crime icon colours ─────────────────────────────────
+        const COLORS = {
+            Theft:'#ef4444', Assault:'#f97316', Vandalism:'#eab308',
+            Harassment:'#a855f7', Fraud:'#3b82f6', Drug:'#1f2937',
+            Traffic:'#92400e', Domestic:'#dc2626', Other:'#10b981'
+        };
+
+        function crimeIcon(category) {
+            const color = COLORS[category] || '#6b7280';
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'>
+                <path d='M14 0C6.3 0 0 6.3 0 14c0 9.8 14 22 14 22s14-12.2 14-22C28 6.3 21.7 0 14 0z' fill='${color}'/>
+                <circle cx='14' cy='14' r='6' fill='white' opacity='0.9'/>
+            </svg>`;
+            return L.divIcon({
+                html: svg,
+                className: '',
+                iconSize: [28, 36],
+                iconAnchor: [14, 36],
+                popupAnchor: [0, -36]
+            });
+        }
+
+        function adminIcon() {
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='42' viewBox='0 0 32 42'>
+                <path d='M16 0C7.2 0 0 7.2 0 16c0 11.2 16 26 16 26S32 27.2 32 16C32 7.2 24.8 0 16 0z' fill='#1e40af'/>
+                <text x='16' y='21' text-anchor='middle' fill='white' font-size='14'>👮</text>
+            </svg>`;
+            return L.divIcon({ html: svg, className: '', iconSize: [32, 42], iconAnchor: [16, 42] });
+        }
+
+        // ── Init map ───────────────────────────────────────────
+        function initMap() {
+            map = L.map('adminMap').setView([20.5937, 78.9629], 5); // India center default
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors', maxZoom: 19
+            }).addTo(map);
+        }
+
+        // ── Get admin live location ────────────────────────────
+        function startAdminLocationTracking() {
+            if (!navigator.geolocation) {
+                document.getElementById('adminLocBar').textContent = '⚠️ Geolocation not supported by your browser.';
+                return;
+            }
+
+            // Get once first
+            navigator.geolocation.getCurrentPosition(pos => {
+                updateAdminLocation(pos.coords.latitude, pos.coords.longitude);
+                loadCrimeData(); // load crimes after we have location
+            }, err => {
+                document.getElementById('adminLocBar').textContent = '⚠️ Location permission denied. Enable location to see distances.';
+                loadCrimeData(); // still load crimes
+            }, { enableHighAccuracy: true });
+
+            // Then watch for live updates
+            navigator.geolocation.watchPosition(pos => {
+                updateAdminLocation(pos.coords.latitude, pos.coords.longitude);
+                rebuildDistanceTable(); // re-sort table on movement
+            }, null, { enableHighAccuracy: true, maximumAge: 10000 });
+        }
+
+        function updateAdminLocation(lat, lng) {
+            adminLatLng = { lat, lng };
+            document.getElementById('adminLocBar').innerHTML =
+                `📍 <strong>Your Location:</strong> ${lat.toFixed(5)}, ${lng.toFixed(5)} &nbsp;|&nbsp; <span style="color:#059669;">● Live tracking active</span>`;
+
+            if (adminMarker) {
+                adminMarker.setLatLng([lat, lng]);
+            } else {
+                adminMarker = L.marker([lat, lng], { icon: adminIcon(), zIndexOffset: 1000 })
+                    .addTo(map)
+                    .bindPopup('<strong>👮 Your Location</strong><br>Live tracking active');
+                map.setView([lat, lng], 13);
+            }
+        }
+
+        // ── Load crime data from API ───────────────────────────
+        async function loadCrimeData() {
+            const cat = document.getElementById('catFilter').value;
+            const days = document.getElementById('daysFilter').value;
+
+            // Clear old markers
+            crimeMarkers.forEach(m => map.removeLayer(m));
+            crimeMarkers = [];
+
+            try {
+                const res = await fetch(`/api/reports/map?category=${cat}&days=${days}`);
+                const data = await res.json();
+                if (!data.success) return;
+
+                allReports = data.reports;
+                document.getElementById('crimeCount').textContent = `${allReports.length} crimes shown`;
+
+                allReports.forEach(report => {
+                    const marker = L.marker(
+                        [report.location_lat, report.location_lng],
+                        { icon: crimeIcon(report.category) }
+                    ).addTo(map);
+
+                    const dist = adminLatLng
+                        ? `<br><span class="distance-badge">📏 ${formatDistance(haversine(adminLatLng.lat, adminLatLng.lng, report.location_lat, report.location_lng))} from you</span>`
+                        : '';
+
+                    marker.bindPopup(`
+                        <div class="crime-popup" style="min-width:200px;">
+                            <h4 style="color:${COLORS[report.category]||'#374151'}">● ${report.category}</h4>
+                            <p>📍 ${report.location_address || 'Address not available'}</p>
+                            <p>🕐 ${new Date(report.date_time).toLocaleString()}</p>
+                            <p>Status: <strong>${report.status}</strong></p>
+                            ${dist}
+                        </div>
+                    `);
+
+                    crimeMarkers.push(marker);
+                });
+
+                rebuildDistanceTable();
+
+            } catch (err) {
+                console.error('Map load error:', err);
+                utils.showToast('Failed to load crime data', 'error');
+            }
+        }
+
+        // ── Build distance table ───────────────────────────────
+        function rebuildDistanceTable() {
+            const tbody = document.getElementById('distanceTable');
+
+            if (!allReports.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7280;">No reports found</td></tr>';
+                return;
+            }
+
+            // Attach distance to each report
+            const withDist = allReports.map(r => ({
+                ...r,
+                distKm: adminLatLng
+                    ? haversine(adminLatLng.lat, adminLatLng.lng, r.location_lat, r.location_lng)
+                    : null
+            }));
+
+            // Sort nearest first if we have admin location
+            if (adminLatLng) withDist.sort((a, b) => a.distKm - b.distKm);
+
+            tbody.innerHTML = withDist.map(r => {
+                const distCell = r.distKm !== null
+                    ? `<span class="distance-badge">📏 ${formatDistance(r.distKm)}</span>`
+                    : '<span style="color:#9ca3af;">—</span>';
+                const statusColor = r.status === 'resolved' ? 'success' : r.status === 'pending' ? 'warning' : 'primary';
+                return `
+                    <tr>
+                        <td>#${r.id}</td>
+                        <td style="color:${COLORS[r.category]||'#374151'};font-weight:600;">${r.category}</td>
+                        <td style="font-size:0.8rem;">${r.location_address || 'N/A'}</td>
+                        <td><span class="badge badge-${statusColor}">${r.status}</span></td>
+                        <td>${distCell}</td>
+                        <td>
+                            <button class="btn btn-small btn-primary"
+                                onclick="flyToMarker(${r.location_lat},${r.location_lng})">
+                                📍 Locate
+                            </button>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // ── Fly to a crime marker ──────────────────────────────
+        function flyToMarker(lat, lng) {
+            map.flyTo([lat, lng], 16, { animate: true, duration: 1.2 });
+            // Open corresponding popup
+            crimeMarkers.forEach(m => {
+                if (m.getLatLng().lat.toFixed(5) === parseFloat(lat).toFixed(5)) {
+                    m.openPopup();
+                }
+            });
+        }
+
+        // ── Event listeners ────────────────────────────────────
+        document.getElementById('applyFilters').addEventListener('click', loadCrimeData);
+        document.getElementById('refreshBtn').addEventListener('click', loadCrimeData);
+
+        // ── Boot ───────────────────────────────────────────────
+        initMap();
+        startAdminLocationTracking();
+    </script>
+</body>
+</html>
