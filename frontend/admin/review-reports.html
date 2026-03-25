@@ -165,8 +165,8 @@
                     <td>${report.description.substring(0, 50)}...</td>
                     <td>${report.crime_location_address || report.location_address || 'N/A'}</td>
                     <td>
-                        <select class="status-dropdown" data-report-id="${report.id}" 
-                                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer; background: white; font-size: 0.875rem; font-weight: 500;">
+                        <select class="status-dropdown" data-report-id="${report.id}" data-original-status="${report.status}"
+                            style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer; background: white; font-size: 0.875rem; font-weight: 500;">
                             <option value="pending" ${report.status === 'pending' ? 'selected' : ''}>Pending</option>
                             <option value="investigating" ${report.status === 'investigating' ? 'selected' : ''}>Investigating</option>
                             <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>Resolved</option>
@@ -195,13 +195,13 @@
                 dropdown.addEventListener('change', async (e) => {
                     const reportId = e.target.dataset.reportId;
                     const newStatus = e.target.value;
-                    const originalValue = e.target.querySelector(`option[value="${report.status}"]`).value;
-                    
-                    // Show confirmation
+                    const originalValue = e.target.dataset.originalStatus;
+
                     if (confirm(`Change status to "${newStatus}"?`)) {
+                        e.target.dataset.originalStatus = newStatus; // update so cancel works correctly after save
                         await updateStatus(reportId, newStatus);
                     } else {
-                        e.target.value = originalValue; // Reset if cancelled
+                        e.target.value = originalValue;
                     }
                 });
             });
