@@ -1,0 +1,55 @@
+{
+  "faqs": [
+    {
+      "keywords": ["fir", "first information report", "file fir", "register fir"],
+      "question": "How do I file an FIR?",
+      "answer": "To file an FIR:\n1. Go to the nearest police station.\n2. Give a written or oral complaint to the officer in charge.\n3. The officer must register the FIR for cognizable offences — this is your legal right.\n4. You will receive a free copy of the FIR.\n5. If police refuse, you can send the complaint by post to the Superintendent of Police or approach a Judicial Magistrate under Section 156(3) CrPC.\n\nTip: Note the FIR number for tracking."
+    },
+    {
+      "keywords": ["rights", "arrested", "arrest", "police arrest", "custody"],
+      "question": "What are my rights if I am arrested?",
+      "answer": "If you are arrested in India, you have the right to:\n1. Know the grounds of arrest (Article 22, Constitution).\n2. Be produced before a Magistrate within 24 hours.\n3. Consult and be defended by a lawyer of your choice.\n4. Free legal aid if you cannot afford a lawyer (Section 304 CrPC).\n5. Inform a relative or friend about your arrest.\n6. Not be subjected to unnecessary restraint or torture.\n7. Remain silent — you are not compelled to be a witness against yourself (Article 20)."
+    },
+    {
+      "keywords": ["bail", "bailable", "non bailable", "get bail"],
+      "question": "What is the difference between bailable and non-bailable offences?",
+      "answer": "Bailable offences: Bail is a right. The police or court must grant bail. Examples: minor theft, public nuisance.\n\nNon-bailable offences: Bail is not automatic — it is at the court's discretion. Examples: murder, rape, kidnapping, dacoity.\n\nFor non-bailable offences, apply for bail before the Sessions Court or High Court. The court considers factors like flight risk, severity of crime, and past conduct."
+    },
+    {
+      "keywords": ["domestic violence", "domestic abuse", "wife beating", "harassment at home"],
+      "question": "How do I report domestic violence?",
+      "answer": "Under the Protection of Women from Domestic Violence Act 2005:\n1. Call the Women Helpline: 181 or 1091.\n2. Contact a Protection Officer at your local District Women & Child Development office.\n3. File an FIR at the nearest police station.\n4. You can apply to a Magistrate for:\n   - Protection Order (to stop the abuser)\n   - Residence Order (right to stay in shared home)\n   - Monetary relief\n5. NGOs like iCall, Snehi can also help."
+    },
+    {
+      "keywords": ["legal aid", "free lawyer", "afford lawyer", "poor", "cannot afford"],
+      "question": "How can I get free legal aid?",
+      "answer": "Legal Services Authorities Act 1987 guarantees free legal aid to:\n- Women and children\n- SC/ST communities\n- Victims of trafficking\n- Persons with disabilities\n- Those earning below ₹1 lakh per year\n\nHow to apply:\n1. Contact your District Legal Services Authority (DLSA) — present in every district court.\n2. Call NALSA helpline: 15100\n3. Visit nalsa.gov.in to find your nearest centre."
+    },
+    {
+      "keywords": ["consumer", "consumer rights", "fraud product", "cheated", "consumer complaint"],
+      "question": "What are my consumer rights and how do I file a complaint?",
+      "answer": "Under the Consumer Protection Act 2019, you have rights to:\n- Safety, Information, Choice, Redressal, and Consumer Education.\n\nSteps to file a complaint:\n1. First approach the company/seller with a written complaint.\n2. If unresolved, file at:\n   - District Consumer Forum: Claims up to ₹1 crore\n   - State Consumer Commission: ₹1 crore to ₹10 crore\n   - National Consumer Commission: Above ₹10 crore\n3. You can also file online at: consumerhelpline.gov.in\n4. Helpline: 1800-11-4000 (toll-free)"
+    },
+    {
+      "keywords": ["theft", "stolen", "robbery", "my belongings stolen", "bike stolen", "phone stolen"],
+      "question": "What should I do if I am a victim of theft?",
+      "answer": "Steps to follow:\n1. File an FIR at the nearest police station immediately. Mention item details, serial numbers, etc.\n2. For mobile theft, additionally file at cybercrime.gov.in and provide IMEI number.\n3. For vehicle theft, also inform your insurance company within 24–48 hours.\n4. Collect the FIR copy — you'll need it for insurance claims.\n5. If police are unresponsive, escalate to the SP or file a private complaint before a Magistrate."
+    },
+    {
+      "keywords": ["police misconduct", "police brutality", "corrupt police", "complaint against police"],
+      "question": "How do I complain against police misconduct?",
+      "answer": "You can:\n1. File a written complaint with the Superintendent of Police (SP) of the district.\n2. Approach the State Human Rights Commission or National Human Rights Commission (NHRC): nhrc.nic.in\n3. File a complaint with the State Police Complaints Authority.\n4. Approach the High Court or Supreme Court by filing a writ petition for fundamental rights violations.\n5. Contact NHRC Helpline: 14433"
+    },
+    {
+      "keywords": ["right to silence", "interrogation", "police questioning", "questioned by police"],
+      "question": "What are my rights during police questioning?",
+      "answer": "1. You have the right to remain silent — Article 20(3) says no person can be compelled to be a witness against themselves.\n2. You are not obligated to answer questions that may incriminate you.\n3. If arrested, you must be told why.\n4. You have the right to have a lawyer present.\n5. Any confession made to a police officer is not admissible as evidence in court (Section 25, Indian Evidence Act).\n6. Police cannot use physical force or torture — this is a criminal offence under Section 330 IPC."
+    },
+    {
+      "keywords": ["case status", "check case", "track case", "court case status"],
+      "question": "How can I check the status of my court case?",
+      "answer": "1. Visit ecourts.gov.in — India's official eCourts portal.\n2. You can search by CNR number, party name, FIR number, or advocate name.\n3. For High Court cases, visit your respective High Court's website.\n4. For Supreme Court cases: sci.gov.in or supremecourtofindia.nic.in\n5. You can also install the eCourts Services mobile app."
+    }
+  ],
+  "fallback": "I don't have a specific answer for that question in my offline database. For accurate legal guidance, please consult a licensed attorney or contact NALSA at 15100. You can also use the API-powered mode for more detailed help."
+}

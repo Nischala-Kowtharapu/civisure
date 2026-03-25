@@ -75,126 +75,150 @@
         </main>
     </div>
 
-    <script src="js/main.js"></script>
-    <script>
-        (async () => {
-            await auth.requireAuth();
-        })();
+ <script src="js/main.js"></script>
+<script>
+    (async () => { await auth.requireAuth(); })();
 
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            if (confirm('Are you sure you want to logout?')) {
-                auth.logout();
+    document.getElementById('logoutBtn').addEventListener('click', e => {
+        e.preventDefault();
+        if (confirm('Are you sure you want to logout?')) auth.logout();
+    });
+
+    // ── Mode toggle ────────────────────────────────────────
+    // Set to 'offline' to use JSON, 'api' to use Claude API
+    const CHATBOT_MODE = 'offline'; // ← Change to 'api' when you have API key
+
+    let conversationHistory = [];
+    let legalQA = null;
+
+    // ── Load JSON QA data ──────────────────────────────────
+    async function loadQAData() {
+        try {
+            const res = await fetch('/data/legal-qa.json');
+            legalQA = await res.json();
+        } catch (e) {
+            console.error('Could not load QA data:', e);
+        }
+    }
+
+    // ── Offline matcher ────────────────────────────────────
+    function matchOfflineAnswer(userMsg) {
+        if (!legalQA) return legalQA?.fallback || 'Loading Q&A data...';
+        const lower = userMsg.toLowerCase();
+        for (const item of legalQA.faqs) {
+            if (item.keywords.some(kw => lower.includes(kw))) {
+                return `**${item.question}**\n\n${item.answer}`;
             }
+        }
+        return legalQA.fallback;
+    }
+
+    // ── API call to Claude ─────────────────────────────────
+    async function callAPI(message) {
+        const res = await fetch('/api/chatbot/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, conversationHistory })
         });
+        const data = await res.json();
+        if (data.success) return data.response;
+        throw new Error(data.message || 'API error');
+    }
 
-        let conversationHistory = [];
+    // ── Render message with basic markdown ────────────────
+    function renderText(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+    }
 
-        async function loadSuggestions() {
-            try {
-                const response = await fetch('/api/chatbot/suggestions');
-                const data = await response.json();
+    function addMessage(content, isUser = false) {
+        const wrap = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = `chat-message ${isUser ? 'user' : ''}`;
+        div.innerHTML = `<div class="chat-message-content">
+            <p style="margin:0;">${isUser ? content : renderText(content)}</p>
+        </div>`;
+        wrap.appendChild(div);
+        wrap.scrollTop = wrap.scrollHeight;
+    }
 
-                if (data.success) {
-                    const suggestionsDiv = document.getElementById('suggestions');
-                    suggestionsDiv.innerHTML = '';
+    // ── Send message ───────────────────────────────────────
+    async function sendMessage() {
+        const input = document.getElementById('userMessage');
+        const sendBtn = document.getElementById('sendBtn');
+        const message = input.value.trim();
+        if (!message) return;
 
-                    data.suggestions.forEach(suggestion => {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn btn-outline';
-                        btn.style.cssText = 'text-align: left; width: 100%; border: 1px solid #e5e7eb; color: #374151;';
-                        btn.textContent = suggestion;
-                        btn.onclick = () => {
-                            document.getElementById('userMessage').value = suggestion;
-                            sendMessage();
-                        };
-                        suggestionsDiv.appendChild(btn);
-                    });
-                }
-            } catch (error) {
-                console.error('Load suggestions error:', error);
+        addMessage(message, true);
+        input.value = '';
+        sendBtn.disabled = true;
+        sendBtn.textContent = '...';
+        conversationHistory.push({ role: 'user', content: message });
+
+        try {
+            let reply;
+            if (CHATBOT_MODE === 'offline') {
+                // Small delay to feel natural
+                await new Promise(r => setTimeout(r, 400));
+                reply = matchOfflineAnswer(message);
+            } else {
+                reply = await callAPI(message);
             }
+            addMessage(reply, false);
+            conversationHistory.push({ role: 'assistant', content: reply });
+        } catch (err) {
+            addMessage('Sorry, something went wrong. Please try again.', false);
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
         }
+    }
 
-        function addMessage(content, isUser = false) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${isUser ? 'user' : ''}`;
+    // ── Load suggestions ───────────────────────────────────
+    async function loadSuggestions() {
+        // Use local suggestions when offline
+        const suggestions = [
+            "How do I file an FIR?",
+            "What are my rights if I am arrested?",
+            "How do I report domestic violence?",
+            "How can I get free legal aid?",
+            "What is bailable vs non-bailable offence?",
+            "What are my consumer rights?",
+            "How do I complain against police misconduct?",
+            "How can I check my court case status?"
+        ];
 
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'chat-message-content';
-            contentDiv.innerHTML = `<p style="margin: 0; white-space: pre-wrap;">${content}</p>`;
-
-            messageDiv.appendChild(contentDiv);
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('userMessage');
-            const sendBtn = document.getElementById('sendBtn');
-            const message = input.value.trim();
-
-            if (!message) return;
-
-            addMessage(message, true);
-            input.value = '';
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Thinking...';
-
-            conversationHistory.push({ role: 'user', content: message });
-
-            try {
-                const response = await fetch('/api/chatbot/message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        conversationHistory: conversationHistory
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    addMessage(data.response, false);
-                    conversationHistory.push({ role: 'assistant', content: data.response });
-                } else {
-                    addMessage('Sorry, I encountered an error. Please try again.', false);
-                }
-            } catch (error) {
-                console.error('Send message error:', error);
-                addMessage('Sorry, I could not process your request. Please try again.', false);
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Send';
-            }
-        }
-
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
-
-        document.getElementById('userMessage').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+        const div = document.getElementById('suggestions');
+        div.innerHTML = '';
+        suggestions.forEach(s => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline';
+            btn.style.cssText = 'text-align:left;width:100%;border:1px solid #e5e7eb;color:#374151;margin-bottom:4px;';
+            btn.textContent = s;
+            btn.onclick = () => { document.getElementById('userMessage').value = s; sendMessage(); };
+            div.appendChild(btn);
         });
+    }
 
-        document.getElementById('clearChat').addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear the chat history?')) {
-                document.getElementById('chatMessages').innerHTML = `
-                    <div class="chat-message">
-                        <div class="chat-message-content">
-                            <p style="margin: 0;">Chat cleared. How can I help you?</p>
-                        </div>
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('userMessage').addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendMessage();
+    });
+    document.getElementById('clearChat').addEventListener('click', () => {
+        if (confirm('Clear chat?')) {
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="chat-message">
+                    <div class="chat-message-content">
+                        <p style="margin:0;">Chat cleared. How can I help you?</p>
                     </div>
-                `;
-                conversationHistory = [];
-            }
-        });
+                </div>`;
+            conversationHistory = [];
+        }
+    });
 
-        loadSuggestions();
-    </script>
+    loadQAData();
+    loadSuggestions();
+</script>
 </body>
 </html>
